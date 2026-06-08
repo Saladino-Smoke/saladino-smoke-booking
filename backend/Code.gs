@@ -58,6 +58,9 @@ function doPost(e) {
     case 'checkDate':
       result = checkDateAvailability(data);
       break;
+    case 'inquireDate':
+      result = sendDateInquiry(data);
+      break;
     case 'submitBooking':
       result = submitBooking(data);
       break;
@@ -74,6 +77,55 @@ function doGet(e) {
   return ContentService
     .createTextOutput(JSON.stringify({ status: 'ok', message: 'Saladino Smoke Booking API' }))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ═══ DATE INQUIRY — sends Katie the event details, no calendar check ═════════
+
+function sendDateInquiry(data) {
+  try {
+    const subject = 'Date Inquiry: ' + data.firstName + ' ' + data.lastName +
+      ' — ' + data.eventTypeLabel + ' on ' + data.eventDate;
+
+    const html = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <div style="background: #A74D4A; padding: 16px 20px;">
+    <h2 style="color: #F5F5F5; margin: 0; font-size: 18px;">New Date Inquiry — Saladino Smoke</h2>
+  </div>
+  <div style="padding: 24px 20px; background: #F5F5F5; font-size: 14px; line-height: 1.8;">
+    <p style="margin: 0 0 16px;"><strong>${data.firstName} ${data.lastName}</strong> submitted a date inquiry through the booking form.</p>
+
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <tr><td style="padding:4px 8px; font-weight:bold; width:140px;">Name</td><td style="padding:4px 8px;">${data.firstName} ${data.lastName}</td></tr>
+      <tr style="background:#fff;"><td style="padding:4px 8px; font-weight:bold;">Email</td><td style="padding:4px 8px;"><a href="mailto:${data.email}">${data.email}</a></td></tr>
+      <tr><td style="padding:4px 8px; font-weight:bold;">Phone</td><td style="padding:4px 8px;"><a href="tel:${data.phone}">${data.phone}</a></td></tr>
+      <tr style="background:#fff;"><td style="padding:4px 8px; font-weight:bold;">Event Type</td><td style="padding:4px 8px;">${data.eventTypeLabel}</td></tr>
+      <tr><td style="padding:4px 8px; font-weight:bold;">Requested Date</td><td style="padding:4px 8px;"><strong>${data.eventDate}</strong></td></tr>
+      <tr style="background:#fff;"><td style="padding:4px 8px; font-weight:bold;">Time</td><td style="padding:4px 8px;">${data.startTime}${data.endTime ? ' – ' + data.endTime : ''}</td></tr>
+      <tr><td style="padding:4px 8px; font-weight:bold;">Guests</td><td style="padding:4px 8px;">${data.guestCount}</td></tr>
+      <tr style="background:#fff;"><td style="padding:4px 8px; font-weight:bold;">Venue</td><td style="padding:4px 8px;">${data.venueName}</td></tr>
+      <tr><td style="padding:4px 8px; font-weight:bold;">Address</td><td style="padding:4px 8px;">${data.eventAddress}</td></tr>
+      ${data.notes ? '<tr style="background:#fff;"><td style="padding:4px 8px; font-weight:bold;">Notes</td><td style="padding:4px 8px;">' + data.notes + '</td></tr>' : ''}
+      ${data.leadSource ? '<tr><td style="padding:4px 8px; font-weight:bold;">How they found us</td><td style="padding:4px 8px;">' + data.leadSource + '</td></tr>' : ''}
+    </table>
+
+    <p style="margin: 20px 0 0; font-size:13px; color:#555;">
+      Reply directly to this email to reach ${data.firstName} at <a href="mailto:${data.email}">${data.email}</a>.
+    </p>
+  </div>
+</div>`;
+
+    sendViaResend({
+      from: CUSTOMER_FROM_NAME + ' <' + CUSTOMER_FROM_EMAIL + '>',
+      to: NOTIFICATION_EMAIL,
+      replyTo: data.email,
+      subject: subject,
+      html: html
+    });
+    return { success: true };
+  } catch (e) {
+    Logger.log('sendDateInquiry error: ' + e.message);
+    return { success: false };
+  }
 }
 
 // ═══ DATE AVAILABILITY CHECK ═════════════════════════════════════════════════

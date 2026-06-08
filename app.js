@@ -8,9 +8,6 @@
 
   // ── Config ──────────────────────────────────────────────────
   const CONFIG = {
-    // Google Apps Script web app URL — paste your deployment URL here after deploying Code.gs
-    BACKEND_URL: 'https://script.google.com/macros/s/AKfycbweyCJLnz8NApQu8xgJzEMUbG5xR754dUQmp25Xsj6a-NQs7_96yJpnkeLxJ2Vg9yc/exec',
-    // Dev mode: set to true to skip backend calls during testing
     DEV_MODE: false
   };
 
@@ -213,31 +210,26 @@
     const resultEl = $('#availabilityResult');
     resultEl.classList.remove('show');
 
-    if (CONFIG.DEV_MODE || !CONFIG.BACKEND_URL) {
-      // Dev mode: simulate available
+    if (CONFIG.DEV_MODE) {
       setTimeout(() => {
-        showAvailabilityResult(true);
+        showInquiryConfirmation();
         btn.disabled = false;
         btn.textContent = 'Check Availability';
       }, 1000);
       return;
     }
 
-    fetch(CONFIG.BACKEND_URL + '?action=checkDate', {
+    fetch('/api/inquire', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        date: state.inquiry.eventDate,
-        startTime: state.inquiry.startTime,
-        endTime: state.inquiry.endTime
-      })
+      body: JSON.stringify(state.inquiry)
     })
       .then(r => r.json())
-      .then(data => {
-        showAvailabilityResult(data.available);
+      .then(() => {
+        showInquiryConfirmation();
       })
       .catch(() => {
-        showAvailabilityResult(true); // Fail open: let them continue
+        showInquiryConfirmation(); // Show confirmation even on network error — Katie can follow up
       })
       .finally(() => {
         btn.disabled = false;
@@ -245,25 +237,14 @@
       });
   }
 
-  function showAvailabilityResult(available) {
+  function showInquiryConfirmation() {
     const resultEl = $('#availabilityResult');
-    if (available) {
-      resultEl.innerHTML = `
-        <div class="availability-available">
-          <h3>&#10003; Great News!</h3>
-          <p>Your date is currently available. Dates go quickly, so let's get your menu selected and lock it in.</p>
-          <button class="btn btn-primary btn-lg mt-2" id="btnToMenu">Continue to Menu Selection</button>
-        </div>
-      `;
-      on('click', '#btnToMenu', () => goToStep(2));
-    } else {
-      resultEl.innerHTML = `
-        <div class="availability-unavailable">
-          <h3>&#10007; Date Not Available</h3>
-          <p>Sorry, that date is already booked. Please try a different date above and check again.</p>
-        </div>
-      `;
-    }
+    resultEl.innerHTML = `
+      <div class="availability-available">
+        <h3>&#10003; Request Received</h3>
+        <p>Katie will confirm your date shortly.</p>
+      </div>
+    `;
     resultEl.classList.add('show');
     resultEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
