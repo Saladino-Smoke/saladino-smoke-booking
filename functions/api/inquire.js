@@ -38,7 +38,7 @@ export async function onRequestPost({ request, env }) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      from: 'Saladino Smoke Catering <info@saladinosmoke.com>',
+      from: 'Saladino Smoke Catering <info@saladinocatering.com>',
       to: ['catering@saladinosmoke.com'],
       reply_to: email,
       subject: `Date Inquiry: ${firstName} ${lastName} — ${eventTypeLabel} on ${eventDate}`,
