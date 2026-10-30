@@ -1,4 +1,4 @@
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   const data = await request.json();
 
   const { firstName, lastName, email, phone, eventTypeLabel, eventDate,
@@ -45,6 +45,22 @@ export async function onRequestPost({ request, env }) {
       html
     })
   });
+
+  // Every inquiry also becomes a New inquiry card on the HQ Catering board.
+  // With the relay key, HQ saves it without emailing catering@ again (this
+  // email is the one). If this email failed, HQ gets it without the key, so
+  // HQ sends catering@ its own copy instead. Runs after the reply, so a slow
+  // or failed HQ never holds up or fails the customer.
+  if (env.INQUIRE_RELAY_KEY) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (res.ok) headers['X-Relay-Key'] = env.INQUIRE_RELAY_KEY;
+    waitUntil(
+      fetch(env.HQ_INQUIRE_URL || 'https://hq.saladinocatering.com/api/inquire', {
+        method: 'POST', headers, body: JSON.stringify(data),
+      }).then((r) => { if (!r.ok) console.log('HQ relay answered', r.status); })
+        .catch((e) => console.log('HQ relay failed', e.message))
+    );
+  }
 
   const status = res.ok ? 200 : 502;
   return new Response(JSON.stringify({ success: res.ok }), {
